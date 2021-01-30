@@ -5,6 +5,8 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    environment:
+      JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY}
     ports:
       - 7654:80
   database:

@@ -1,8 +1,13 @@
+require("dotenv").config();
+
 const express = require("express");
 const cors = require("cors");
 const parser = require("body-parser");
 const { MongoClient } = require("mongodb");
 const { uuid } = require("uuidv4");
+const jwt = require("jsonwebtoken");
+
+const privateKey = process.env.JWT_PRIVATE_KEY;
 
 // Instantiate App
 const app = express();
@@ -10,6 +15,29 @@ const app = express();
 // Add Middleware
 app.use(parser.json());
 app.use(cors());
+
+function AuthMiddleware(req, res, next) {
+  const { token } = req.headers;
+  try {
+    if (!token) {
+      res.status(401).send({ success: false, message: "token not provided" });
+      return;
+    }
+    const verifyResult = jwt.verify(token, privateKey);
+
+    if (!verifyResult) {
+      res.status(401).send({ success: false, message: "token invalid" });
+      return;
+    } else {
+      next();
+    }
+  } catch (err) {
+    res.status(500).send({ success: false, message: "unable to check auth" });
+  }
+}
+
+app.use("/players", AuthMiddleware);
+app.use("/games", AuthMiddleware);
 
 // Configure Tools and Clients
 const mongoUrl = "mongodb://root:example@host.docker.internal:27020";
@@ -25,6 +53,32 @@ mongoClient.connect().then((client) => {
 app.get("/", (req, res, next) => {
   console.log("hiiiii"), res.send("hiiii");
   return;
+});
+
+app.post("/login", async (req, res, next) => {
+  const { username, password } = req.body;
+  try {
+    const userCollection = db.collection("users");
+    const user = await userCollection.findOne({ username });
+    console.log({ user });
+    if (!user) {
+      res
+        .status(500)
+        .send({ success: false, message: "Could not retrieve user from db" });
+      return;
+    }
+
+    if (user.password !== password) {
+      res.status(400).send({ success: false, message: "Nope" });
+    }
+
+    const token = jwt.sign({ sub: username }, privateKey);
+
+    res.send({ success: true, data: token });
+  } catch (err) {
+    console.log({ err });
+    res.status(500).send({ success: false, message: "an error occured" });
+  }
 });
 
 app.get("/players", async (req, res, next) => {
@@ -155,83 +209,89 @@ app.post("/games", async (req, res, next) => {
     gameId,
   } = req.body;
 
-  const gamesCollection = db.collection("games");
+  try {
+    const gamesCollection = db.collection("games");
 
-  const game = await gamesCollection.findOne({ id: gameId });
-  if (game.resultSubmitted) {
-    res.status(400).send("This game result has already been logged");
-    return;
-  }
-
-  const updateGamesResult = await gamesCollection.updateOne(
-    { id: gameId },
-    {
-      $set: {
-        teamAKills,
-        teamBKills,
-        teamAPosition,
-        teamBPosition,
-        gameId,
-        resultSubmitted: true,
-      },
+    const game = await gamesCollection.findOne({ id: gameId });
+    if (game.resultSubmitted) {
+      res.status(400).send("This game result has already been logged");
+      return;
     }
-  );
-  console.log({ updateGamesResult });
-  if (
-    !updateGamesResult ||
-    !updateGamesResult.result ||
-    !updateGamesResult.result.ok ||
-    updateGamesResult.result.ok !== 1
-  ) {
+
+    const updateGamesResult = await gamesCollection.updateOne(
+      { id: gameId },
+      {
+        $set: {
+          teamAKills,
+          teamBKills,
+          teamAPosition,
+          teamBPosition,
+          gameId,
+          resultSubmitted: true,
+        },
+      }
+    );
+    console.log({ updateGamesResult });
+    if (
+      !updateGamesResult ||
+      !updateGamesResult.result ||
+      !updateGamesResult.result.ok ||
+      updateGamesResult.result.ok !== 1
+    ) {
+      res
+        .status(500)
+        .send({ success: false, message: "Could not insert game into db" });
+      return;
+    }
+
+    const killsWinner =
+      teamAKills > teamBKills ? 1 : teamAKills < teamBKills ? -1 : 0;
+
+    const positionWinner = teamAPosition < teamBPosition ? 1 : -1;
+
+    const result = killsWinner + positionWinner;
+
+    console.log({ killsWinner, positionWinner, result });
+
+    if (result === 0) {
+      res.send("A Draw? snooooore");
+      return;
+    }
+
+    const playersCollection = db.collection("players");
+
+    async function updatePlayerBalancesForTeam(players, negative = false) {
+      const incrementAmount = result * game.stake * (negative ? -1 : 1);
+      console.log({ result, stake: game.stake, incrementAmount });
+      return await Promise.all(
+        players.map(async (player) => {
+          console.log(player);
+          return await playersCollection.updateOne(
+            { id: player },
+            {
+              $inc: {
+                balance: incrementAmount,
+              },
+            }
+          );
+        })
+      );
+    }
+
+    const updateResults = await Promise.all([
+      updatePlayerBalancesForTeam(game.teamAPlayers),
+      updatePlayerBalancesForTeam(game.teamBPlayers, true),
+    ]);
+
+    console.log({ updateResults });
+
+    res.send({ success: true, data: updateResults });
+    return;
+  } catch (err) {
     res
       .status(500)
-      .send({ success: false, message: "Could not insert game into db" });
-    return;
+      .send({ success: false, message: "there was an error updating game" });
   }
-
-  const killsWinner =
-    teamAKills > teamBKills ? 1 : teamAKills < teamBKills ? -1 : 0;
-
-  const positionWinner = teamAPosition < teamBPosition ? 1 : -1;
-
-  const result = killsWinner + positionWinner;
-
-  console.log({ killsWinner, positionWinner, result });
-
-  if (result === 0) {
-    res.send("A Draw? snooooore");
-    return;
-  }
-
-  const playersCollection = db.collection("players");
-
-  async function updatePlayerBalancesForTeam(players, negative = false) {
-    const incrementAmount = result * game.stake * (negative ? -1 : 1);
-    console.log({ result, stake: game.stake, incrementAmount });
-    return await Promise.all(
-      players.map(async (player) => {
-        console.log(player);
-        return await playersCollection.updateOne(
-          { id: player },
-          {
-            $inc: {
-              balance: incrementAmount,
-            },
-          }
-        );
-      })
-    );
-  }
-
-  const updateResults = await Promise.all([
-    updatePlayerBalancesForTeam(game.teamAPlayers),
-    updatePlayerBalancesForTeam(game.teamBPlayers, true),
-  ]);
-
-  console.log({ updateResults });
-
-  res.send("hooray!");
-  return;
 });
 
 app.listen(80, (port) => console.log(`Listening at Port: ${port}`));
