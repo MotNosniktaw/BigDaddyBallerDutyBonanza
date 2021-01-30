@@ -1,0 +1,19 @@
+http:
+  routers:
+    to-ui:
+      rule: PathPrefix(`/ui`)
+      # middlewares:
+      #   - strip-ui-prefix
+      # - development-whitelist
+      service: ui
+
+  # middlewares:
+  #   strip-ui-prefix:
+  #     stripPrefix:
+  #       prefixes:
+  #         - "/ui"
+  services:
+    ui:
+      loadBalancer:
+        servers:
+          - url: {{env "FRONTEND_URL"}}

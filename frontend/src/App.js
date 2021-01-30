@@ -1,5 +1,5 @@
 import React from "react";
-import logo from "./logo.svg";
+import { Route, BrowserRouter as Router, Switch } from "react-router-dom";
 import "./App.css";
 import {
   login,
@@ -9,6 +9,18 @@ import {
 } from "./services";
 
 function App() {
+  return (
+    <Router basename="/ui">
+      <Switch>
+        <Route exact path="/">
+          <Home />
+        </Route>
+      </Switch>
+    </Router>
+  );
+}
+
+function Home() {
   const [loggedIn, setLoggedIn] = React.useState(
     window.localStorage.getItem("bigDaddyToken") ? true : false
   );

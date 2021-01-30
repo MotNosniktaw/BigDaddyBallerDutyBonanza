@@ -1,3 +1,9 @@
-const {} = process.env;
+const { REACT_APP_API_URL } = process.env;
 
-module.exports = { bigDaddyApiUrl: "http://localhost:7654" };
+const config = {
+  bigDaddyApiUrl: REACT_APP_API_URL || "https://1da539e4175f.eu.ngrok.io",
+};
+
+console.log({ config });
+
+module.exports = config;

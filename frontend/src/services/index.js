@@ -1,8 +1,8 @@
 import React from "react";
-import config from "../config";
+import * as config from "../config";
 
 export async function login({ username, password }) {
-  const url = `${config.bigDaddyApiUrl}/login`;
+  const url = `${config.bigDaddyApiUrl}/api/login`;
   console.log({ url });
   const data = JSON.stringify({ username, password });
   const result = await fetch(url, {
@@ -30,7 +30,7 @@ export async function login({ username, password }) {
 }
 
 export async function getAllPlayers({ callback }) {
-  const url = `${config.bigDaddyApiUrl}/players`;
+  const url = `${config.bigDaddyApiUrl}/api/players`;
   const result = await fetch(url, {
     method: "GET",
     mode: "cors",
@@ -84,7 +84,7 @@ export function useGetPlayers() {
 }
 
 export async function getPlayerById({ playerId }) {
-  const url = `${config.bigDaddyApiUrl}/players/${playerId}`;
+  const url = `${config.bigDaddyApiUrl}/api/players/${playerId}`;
   const result = await fetch(url, {
     method: "GET",
     mode: "cors",
@@ -109,7 +109,7 @@ export async function getPlayerById({ playerId }) {
 }
 
 export async function registerPlayer({ name }) {
-  const url = `${config.bigDaddyApiUrl}/players/`;
+  const url = `${config.bigDaddyApiUrl}/api/players/`;
   const data = JSON.stringify({ name });
   const result = await fetch(url, {
     method: "PUT",
@@ -136,7 +136,7 @@ export async function registerPlayer({ name }) {
 }
 
 export async function registerGame({ teamAPlayers, teamBPlayers, stake }) {
-  const url = `${config.bigDaddyApiUrl}/games/`;
+  const url = `${config.bigDaddyApiUrl}/api/games/`;
   const data = JSON.stringify({ teamAPlayers, teamBPlayers, stake });
   const result = await fetch(url, {
     method: "PUT",
@@ -169,7 +169,7 @@ export async function submitGameResult({
   teamBPosition,
   gameId,
 }) {
-  const url = `${config.bigDaddyApiUrl}/games/`;
+  const url = `${config.bigDaddyApiUrl}/api/games/`;
   const data = JSON.stringify({
     teamAKills,
     teamBKills,

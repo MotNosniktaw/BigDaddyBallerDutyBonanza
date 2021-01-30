@@ -1,0 +1,19 @@
+http:
+  routers:
+    to-api:
+      rule: PathPrefix(`/api`)
+      middlewares:
+        - strip-api-prefix
+        # - development-whitelist
+      service: api
+
+  middlewares:
+    strip-api-prefix:
+      stripPrefix:
+        prefixes:
+          - "/api"
+  services:
+    api:
+      loadBalancer:
+        servers:
+          - url: {{env "BACKEND_URL"}}

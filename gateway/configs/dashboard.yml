@@ -1,0 +1,13 @@
+http:
+  routers:
+    api:
+      rule: Host(`{{ env "TRAEFIK_HOST" }}`)
+      middlewares:
+        # - development-whitelist
+        - traefik_auth
+      service: api@internal
+  middlewares:
+    traefik_auth:
+      basicAuth:
+        users:
+          - "test:$apr1$xiucthko$C/PiPxqK5umaF0vkuyEKH1"
