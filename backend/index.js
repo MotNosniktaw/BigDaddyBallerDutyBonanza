@@ -92,12 +92,12 @@ app.get("/players", async (req, res, next) => {
         return players;
       });
 
-    res.send(players);
+    res.send({ success: true, data: players });
     return;
   } catch (error) {
     console.log(error);
 
-    res.status(500).send("Ruh-roh");
+    res.status(500).send({ success: false, message: "Ruh-roh" });
     return;
   }
 });
@@ -110,12 +110,12 @@ app.get("/players/:id", async (req, res, next) => {
 
     const player = await collection.findOne({ id });
 
-    res.send(player);
+    res.send({ success: true, data: player });
     return;
   } catch (error) {
     console.log(error);
 
-    res.status(500).send("Ruh-roh");
+    res.status(500).send({ success: false, message: "Ruh-roh" });
     return;
   }
 });
@@ -155,6 +155,7 @@ app.put("/players", async (req, res, next) => {
 
 app.put("/games", async (req, res, next) => {
   const { teamAPlayers, teamBPlayers, stake } = req.body;
+  console.log({ teamAPlayers, teamBPlayers, stake });
   try {
     const playersCollection = db.collection("players");
     const players = await playersCollection.find().toArray();
@@ -209,6 +210,14 @@ app.post("/games", async (req, res, next) => {
     gameId,
   } = req.body;
 
+  console.log({
+    teamAKills,
+    teamBKills,
+    teamAPosition,
+    teamBPosition,
+    gameId,
+  });
+
   try {
     const gamesCollection = db.collection("games");
 
@@ -254,7 +263,13 @@ app.post("/games", async (req, res, next) => {
     console.log({ killsWinner, positionWinner, result });
 
     if (result === 0) {
-      res.send("A Draw? snooooore");
+      res.send({
+        success: true,
+        data: {
+          winner: null,
+          draw: true,
+        },
+      });
       return;
     }
 
@@ -285,7 +300,12 @@ app.post("/games", async (req, res, next) => {
 
     console.log({ updateResults });
 
-    res.send({ success: true, data: updateResults });
+    res.send({
+      success: true,
+      data: {
+        winner: result > 0 ? "Team A" : "Team B",
+      },
+    });
     return;
   } catch (err) {
     res
