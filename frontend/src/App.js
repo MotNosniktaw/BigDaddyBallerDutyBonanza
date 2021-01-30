@@ -263,8 +263,15 @@ function GameScreen() {
       }}
     >
       <div style={{ display: "flex", flexDirection: "row" }}>
-        <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-          <div>GAAAMMEE!!</div>
+        <div
+          style={{
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+            margin: 32,
+          }}
+        >
+          <div>Big Daddy Baller Duty Bonanza</div>
           <div style={{ display: "flex", flexDirection: "row" }}>
             <div style={{ padding: 20 }}>
               <h3>Team A</h3>
@@ -339,7 +346,7 @@ function GameScreen() {
             <button onClick={() => handleRegister()}>Create Game!</button>
           </div>
         </div>
-        <div>
+        <div style={{ margin: 32 }}>
           {players &&
             players.map((player) => (
               <div style={{ display: "flex", flexDirection: "row" }}>
